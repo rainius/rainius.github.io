@@ -68,33 +68,109 @@ testCompile "org.powermock:powermock-api-mockito:$rootProject.ext.powerMockito"
 {% endhighlight %}
 
 
-// 提示
-Gradle专业提示：用变量定义版本号
+> **Gradle专业提示：用变量定义版本号**
+>
+>注意我们用$rootProject.ext.junitVersion代替了版本号。我们在根项目的gradle构建文件里定义这些变量（build.gradle）。这样我们修改一次变量就可以对全部模块起作用。
+>
+>在我们所有的依赖配置中都沿用此语法。
 
-注意我们用$rootProject.ext.junitVersion代替了版本号。我们在根项目的gradle构建文件里定义这些变量（build.gradle）。这样我们修改一次变量就可以对全部模块起作用。
-
-在我们所有的依赖配置中都沿用此语法。
-
-//~
 
 切换到“Unit Tests” Build Variant
+将**Build Variant**切换到`Unit Tests`以激活`tests/`目录，使用该目录下的Java文件。
 
+打开**Build Variants**边栏（左下角），将“Test Artifact”切换到`Unit Tests`：
 
+![img03](/img/android_testing/img03.png)
 
+####可选：同步你的项目####
 
+。。。
 
+####创建你的第一个单元测试：Notes Presenter####
 
+现在所有的配置已经完成，是时候编写第一个测试了。一个单元测试执行你应用程序中的一个小组件，通常是一个方法或者回调。记住，我们编写单元测试在先，随后才实现它们的逻辑。
 
+我们来为`NotesPresenter`实现几个测试。
 
+Notes presenter处在数据模型与视图的中间。它基于接收到的回调来重置视图（显示加载提示，展示note列表，或者提示内容为空）。它还负责根据用户在屏幕上选定的选项来显示不同的视图，比如显示note详情，或者“添加note”操作界面。
 
+####用Mockito模拟依赖####
 
+我们第一个测试单纯关注`NotesPresenter`。不过，`NotesPresenter`类并不是孤立存在的。它还需要一个视图对象（NotesContract.View）来更新UI，以及存储notes的仓库（repository）。此时，我们还不用操心视图和仓库的具体实现。我们只用确保presenter能按照我们的期望运行。
 
+在隔离测试条件下，我们能够使用`模拟对象`来测试我们的类，而拜托对真实实现的依赖。模拟对象是一个虚拟类，你可以根据输入来定义它的方法的输出和行为。
 
+这对于我们的测试来说简直完美——我们并不知道视图如何显示进度，我们只知道presenter`必定`会调用视图的某个方法来通知它显示进度。我们接下来编写的测试将关注presenter是否在我们调用它的方法的时候能够按照预期对视图进行调用。
 
+[Mockito](http://mockito.org)是Android平台上一种流行的mocking框架。你将在下一节看到它的一些语法。
 
+使用Mockito这类mocking框架的另一大好处是针对调用参数测试的选项。这意味着你可以编写测试来捕获传送给方法的参数，然后对它们进行测试。（在Mockito中这项功能通过`ArgumentCaptor`实现）。
 
+####单元测试1：打开“添加Notes”界面####
 
+单元测试位于`test`/源码组中。
 
+确认你已经选择了**Unit Tests**build variant，否则单元测试相关类会被禁用。
+
+**打开文件**`app/src/test/java/.../notes/NotesPresenterTest.java`，
+
+> 如果你无法看到此文件，确认你已经按照前面章节中所说的切换到**Project perspective**视图，并且你已经选择了**Unit Tests**。
+
+我们的第一个测试验证的是，请求Presenter打开"Add new note"界面的操作是否按照期望的那样调用视图来更新当前界面。
+
+我们来实现`clickOnFab_ShowsAddsNoteUi()`测试。
+
+首先，删除对`fail(...)`调用，因为我们现在正在实现这个测试。
+
+然后，调用presenter的`addNewNote()`方法，接着我们验证视图的`showAddNote()`方法被调用到。
+
+以下使我们最终的实现：
+
+{% highlight java %}
+@Test
+public void clickOnFab_ShowsAddsNoteUi() {
+   // When adding a new note
+   mNotesPresenter.addNewNote();
+
+   // Then add note UI is shown
+   verify(mNotesView).showAddNote();
+}
+{% endhighlight %}
+
+> 我们可以直接调用`verfy(...)`，因为我们已经为它做了静态导入：`import static org.mockito.Mockito.verify;`
+
+####运行你的单元测试####
+
+现在是运行你的测试的最后时刻！
+
+在`NotesPresenterTest`类上右键单击，并选择**Run > NotesPresenterTest**。
+
+![img04](/img/android_testing/img04.png)
+
+也能从命令行运行测试：
+
+> ./gradlew -Dtest.single=NotesPresenterTest test
+
+> 你可能已经注意到Android Studio并没有要求你连接设备或者启动模拟器。这是因为src/tests文件夹下的测试时本地单元测试，它们运行在你电脑的Java虚拟机上。这样确实能够实现非常快速的迭代流，然后实现功能以通过测试，接着添加更多测试。。。这就是测试驱动开发了。
+
+**恭喜！**你已经编写了你第一个单元测试！**（这个测试此时应当会失败）**
+
+![img05](/img/android_testing/img05.png)
+
+现在测试失败，因为我们还没有在presenter中实现对应的逻辑。
+
+####实现NotesPresenter#addNewNote####
+
+**NotesPresenter.java**
+
+{% highlight java %}
+@Override
+public void addNewNote() {
+   mNotesView.showAddNote();
+}
+{% endhighlight %}
+
+重新运行测试，现在完全成功了。
 
 
 
